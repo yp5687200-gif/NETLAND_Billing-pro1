@@ -1,33 +1,313 @@
-<!doctype html>
-<html lang="id"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NETLAND Billing 2026</title>
-<link rel="stylesheet" href="style.css">
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETLAND.id - Core Billing System v2.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-<div class="top">
-<h1>NETLAND Billing 2026</h1>
-<p>Offline ISP Billing Dashboard</p>
-</div>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased">
 
-<div class="grid">
-<div class="card"><h3>Total Pelanggan</h3><span id="cust">0</span></div>
-<div class="card"><h3>Potensi Pendapatan</h3><span id="income">Rp 0</span></div>
-</div>
+    <nav class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-2xl">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl font-black tracking-wider bg-gradient-to-r from-blue-500 to-indigo-400 bg-clip-text text-transparent">NETLAND<span class="text-gray-200">.id</span></span>
+            <span class="bg-blue-500/10 text-blue-400 text-xs px-2.5 py-1 rounded-md font-mono border border-blue-500/20 uppercase tracking-widest font-bold">ISP CORE SYSTEM</span>
+        </div>
+        <div class="flex items-center space-x-3 text-sm">
+            <button onclick="document.getElementById('importFile').click()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 px-3 py-1.5 rounded-lg cursor-pointer transition">📥 Impor Git DB</button>
+            <input type="file" id="importFile" class="hidden" accept=".json" onchange="importDatabase(event)">
+            <button onclick="syncToGithub()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-4 py-1.5 rounded-lg cursor-pointer shadow-lg shadow-blue-500/20 transition">🔄 Ekspor ke GitHub</button>
+        </div>
+    </nav>
 
-<div class="card">
-<h2>Tambah Pelanggan</h2>
-<input id="nama" placeholder="Nama pelanggan">
-<input id="paket" placeholder="Paket">
-<input id="harga" type="number" placeholder="Harga">
-<button onclick="addCustomer()">Simpan</button>
-</div>
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl shadow-xl">
+                <p class="text-xs font-semibold tracking-wider text-gray-400 uppercase">Omset Pendapatan</p>
+                <p class="text-2xl font-black text-emerald-400 font-mono mt-1" id="statPendapatan">Rp 0</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl shadow-xl">
+                <p class="text-xs font-semibold tracking-wider text-gray-400 uppercase">Total Pelanggan</p>
+                <p class="text-2xl font-black text-white font-mono mt-1" id="statTotal">0</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl shadow-xl">
+                <p class="text-xs font-semibold tracking-wider text-gray-400 uppercase">Pelanggan Aktif</p>
+                <p class="text-2xl font-black text-blue-400 font-mono mt-1" id="statAktif">0</p>
+            </div>
+            <div class="bg-gray-900 border border-gray-800 p-5 rounded-xl shadow-xl border-l-4 border-l-rose-500/70">
+                <p class="text-xs font-semibold tracking-wider text-gray-400 uppercase">Terisolir / Mati</p>
+                <p class="text-2xl font-black text-rose-500 font-mono mt-1" id="statIsolir">0</p>
+            </div>
+        </div>
 
-<div class="card">
-<h2>Data Pelanggan</h2>
-<div id="list"></div>
-</div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-gray-900 border border-gray-800 p-6 rounded-xl shadow-xl">
+                <h2 class="text-md font-bold mb-4 tracking-wide text-gray-200 border-b border-gray-800 pb-2 flex items-center gap-2">🟢 REGISTRASI USER BARU</h2>
+                <form id="billingForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nama Pelanggan (ID-PPPoE)</label>
+                        <input type="text" id="nama" required class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium transition" placeholder="Contoh: Fauzi_NETLAND">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nomor WhatsApp</label>
+                        <input type="number" id="whatsapp" required class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono transition" placeholder="Contoh: 0812345678">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Pilihan Paket Layanan</label>
+                        <select id="paket" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition">
+                            <option value="Basic_30M|135000">Basic - UpTo 30mbps (Rp 135.000)</option>
+                            <option value="Family_50M|165000">Family - UpTo 50mbps (Rp 165.000)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Tanggal Mulai Langganan</label>
+                        <input type="date" id="tanggalMulai" required class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500 transition">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-lg shadow-blue-500/10 cursor-pointer transition">🚀 Aktifkan & Simpan</button>
+                </form>
+            </div>
 
-<script src="app.js"></script>
-</body></html>
+            <div class="bg-gray-900 border border-gray-800 p-6 rounded-xl shadow-xl lg:col-span-2 flex flex-col justify-between">
+                <h2 class="text-md font-bold mb-2 tracking-wide text-gray-200 border-b border-gray-800 pb-2">📊 ANALISIS DISTRIBUSI LAYANAN</h2>
+                <div class="h-64 flex justify-center items-center">
+                    <canvas id="ispChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="p-5 border-b border-gray-800 bg-gray-900 flex justify-between items-center">
+                <h2 class="text-md font-bold tracking-wide text-gray-200">🖥️ DATABASE UTAMA PELANGGAN (AUTO-ISOLIR RADAR)</h2>
+                <span class="text-xs font-mono text-gray-500 bg-black/40 px-2 py-1 rounded border border-gray-800">Total Loop Data: Realtime</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm text-gray-400">
+                    <thead class="bg-gray-950/80 text-xs font-bold tracking-wider text-gray-300 uppercase border-b border-gray-800">
+                        <tr>
+                            <th class="p-4">Nama User</th>
+                            <th class="p-4">WhatsApp</th>
+                            <th class="p-4">Paket Data</th>
+                            <th class="p-4">Masa Aktif</th>
+                            <th class="p-4">Status Core</th>
+                            <th class="p-4 text-center">Aksi Manajemen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelPelanggan" class="divide-y divide-gray-800">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let ispChartInstance = null;
+
+        // Set default input tanggal ke hari ini
+        document.getElementById('tanggalMulai').valueToDate = new Date();
+        document.getElementById('tanggalMulai').value = new Date().toISOString().substring(0, 10);
+
+        document.getElementById('billingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nama = document.getElementById('nama').value;
+            let whatsapp = document.getElementById('whatsapp').value;
+            const paketRaw = document.getElementById('paket').value.split('|');
+            const tanggalMulai = document.getElementById('tanggalMulai').value;
+
+            if (whatsapp.startsWith('0')) whatsapp = '62' + whatsapp.slice(1);
+
+            const dataBaru = {
+                id: Date.now(),
+                nama,
+                whatsapp,
+                namaPaket: paketRaw[0].replace('_', ' '),
+                harga: parseInt(paketRaw[1]),
+                tanggalMulai: tanggalMulai
+            };
+
+            let database = JSON.parse(localStorage.getItem('netland_isp_db')) || [];
+            database.push(dataBaru);
+            localStorage.setItem('netland_isp_db', JSON.stringify(database));
+
+            document.getElementById('nama').value = '';
+            document.getElementById('whatsapp').value = '';
+            processEngine();
+        });
+
+        function processEngine() {
+            const database = JSON.parse(localStorage.getItem('netland_isp_db')) || [];
+            const tabel = document.getElementById('tabelPelanggan');
+            tabel.innerHTML = '';
+
+            let omset = 0;
+            let countAktif = 0;
+            let countIsolir = 0;
+            let countBasic = 0;
+            let countFamily = 0;
+
+            const hariIni = new Date();
+
+            if (database.length === 0) {
+                tabel.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-600 tracking-wide">Belum ada node data pelanggan yang terdeteksi di server lokal ini.</td></tr>`;
+                updateCounters(0, 0, 0, 0);
+                renderChart(0, 0);
+                return;
+            }
+
+            database.forEach((p) => {
+                omset += p.harga;
+                if(p.namaPaket.includes("Basic")) countBasic++;
+                if(p.namaPaket.includes("Family")) countFamily++;
+
+                // Logika Masa Aktif & Auto Isolir Otomatis (Sistem 30 Hari ISP)
+                const tglAwal = new Date(p.tanggalMulai);
+                const tglJatuhTempo = new Date(tglAwal.getTime() + (30 * 24 * 60 * 60 * 1000));
+                
+                const selisihWaktu = tglJatuhTempo - hariIni;
+                const sisaHari = Math.ceil(selisihWaktu / (1000 * 60 * 60 * 24));
+
+                let statusBadge = '';
+                let sisaHariText = '';
+
+                if (sisaHari > 0) {
+                    countAktif++;
+                    statusBadge = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono px-2.5 py-0.5 rounded-md">✔ LIVE ACTIVE</span>`;
+                    sisaHariText = `<span class="text-gray-200 font-mono font-bold">${sisaHari} Hari</span> lagi`;
+                } else {
+                    countIsolir++;
+                    statusBadge = `<span class="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-xs font-bold font-mono px-2.5 py-0.5 rounded-md">⛔ BLOCKED (ISOLIR)</span>`;
+                    sisaHariText = `<span class="text-rose-500 font-mono font-bold">EXPIRED</span>`;
+                }
+
+                // Struktur Teks Pesan WhatsApp Profesional
+                const formatRupiah = (angka) => "Rp " + angka.toLocaleString('id-ID');
+                const pesanWA = encodeURIComponent(
+                    `*STRUK KONTAN RESMI NETLAND.id*\n\n` +
+                    `Pelanggan yang terhormat:\n` +
+                    `• ID User : *${p.nama}*\n` +
+                    `• Paket : ${p.namaPaket}\n` +
+                    `• Biaya : ${formatRupiah(p.harga)}\n` +
+                    `• Jatuh Tempo : ${tglJatuhTempo.toLocaleDateString('id-ID')}\n\n` +
+                    `Status Akun saat ini terdeteksi *AKTIF*. Terima kasih telah memilih layanan internet ultra-cepat dari NETLAND.id.\n\n` +
+                    `_Pesan ini digenerate otomatis oleh Core Billing Server._`
+                );
+
+                tabel.innerHTML += `
+                    <tr class="hover:bg-gray-900/50 transition border-b border-gray-800/50">
+                        <td class="p-4 font-bold text-white tracking-wide">${p.nama}</td>
+                        <td class="p-4 font-mono text-xs text-gray-400">+${p.whatsapp}</td>
+                        <td class="p-4">
+                            <span class="text-xs font-semibold px-2 py-1 rounded bg-gray-800 text-blue-400 border border-gray-700">${p.namaPaket}</span>
+                        </td>
+                        <td class="p-4 text-xs">${sisaHariText}</td>
+                        <td class="p-4">${statusBadge}</td>
+                        <td class="p-4 flex justify-center gap-2 items-center">
+                            <a href="https://wa.me/${p.whatsapp}?text=${pesanWA}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-md shadow-md shadow-emerald-950 transition cursor-pointer">💬 Push WA</a>
+                            <button onclick="perpanjangUser(${p.id})" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer">🔄 Renew</button>
+                            <button onclick="hapusUser(${p.id})" class="bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-950 text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            updateCounters(omset, database.length, countAktif, countIsolir);
+            renderChart(countBasic, countFamily);
+        }
+
+        function updateCounters(omset, total, aktif, isolir) {
+            document.getElementById('statPendapatan').innerText = "Rp " + omset.toLocaleString('id-ID');
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statAktif').innerText = aktif;
+            document.getElementById('statIsolir').innerText = isolir;
+        }
+
+        function perpanjangUser(id) {
+            let database = JSON.parse(localStorage.getItem('netland_isp_db')) || [];
+            database = database.map(p => {
+                if(p.id === id) {
+                    p.tanggalMulai = new Date().toISOString().substring(0, 10); // Reset ke hari ini (tambah 30 hari lagi)
+                }
+                return p;
+            });
+            localStorage.setItem('netland_isp_db', JSON.stringify(database));
+            processEngine();
+        }
+
+        function hapusUser(id) {
+            if(confirm('Hapus entitas pelanggan ini dari sistem inti?')) {
+                let database = JSON.parse(localStorage.getItem('netland_isp_db')) || [];
+                database = database.filter(p => p.id !== id);
+                localStorage.setItem('netland_isp_db', JSON.stringify(database));
+                processEngine();
+            }
+        }
+
+        function syncToGithub() {
+            const data = localStorage.getItem('netland_isp_db');
+            if(!data || data === "[]") return alert("Tidak ada data untuk diekspor!");
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'netland_database_backup.json';
+            a.click();
+        }
+
+        function importDatabase(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (Array.isArray(parsedData)) {
+                        localStorage.setItem('netland_isp_db', JSON.stringify(parsedData));
+                        alert('Sinkronisasi Berhasil! Database NETLAND.id berhasil diperbarui.');
+                        processEngine();
+                    } else {
+                        alert('Struktur file backup tidak valid!');
+                    }
+                } catch (err) {
+                    alert('Gagal membaca file JSON!');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function renderChart(basic, family) {
+            const ctx = document.getElementById('ispChart').getContext('2d');
+            if (ispChartInstance) {
+                ispChartInstance.destroy();
+            }
+            ispChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Paket Basic (30 Mbps)', 'Paket Family (50 Mbps)'],
+                    datasets: [{
+                        label: 'Jumlah Pelanggan Terpasang',
+                        data: [basic, family],
+                        backgroundColor: ['rgba(59, 130, 246, 0.6)', 'rgba(147, 51, 234, 0.6)'],
+                        borderColor: ['#3b82f6', '#9333ea'],
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        // Init System runtime
+        processEngine();
+    </script>
+</body>
+</html>
