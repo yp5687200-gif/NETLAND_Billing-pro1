@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NETLAND Billing Pro 2026</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="top">
+<h1>NETLAND Billing Pro 2026</h1>
+<p>Offline ISP Billing Dashboard</p>
+</div>
+
+<div class="grid">
+<div class="card"><h3>Total Pelanggan</h3><span id="cust">0</span></div>
+<div class="card"><h3>Potensi Pendapatan</h3><span id="income">Rp 0</span></div>
+</div>
+
+<div class="card">
+<h2>Tambah Pelanggan</h2>
+<input id="nama" placeholder="Nama pelanggan">
+<input id="paket" placeholder="Paket">
+<input id="harga" type="number" placeholder="Harga">
+<button onclick="addCustomer()">Simpan</button>
+</div>
+
+<div class="card">
+<h2>Data Pelanggan</h2>
+<div id="list"></div>
+</div>
+
+<script src="app.js"></script>
+</body></html>
